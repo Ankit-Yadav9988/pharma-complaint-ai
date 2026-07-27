@@ -1,0 +1,21 @@
+PHARMACOVIGILANCE / QUALITY COMPLAINT INTAKE FORM
+
+Complaint Source: Distributor
+Customer Name: Northgate Medical Distributors Ltd
+Contact: qa@northgatemed.co.uk
+Product Name: Amoxicillin Trihydrate Capsules
+Strength: 500 mg
+Batch No: AMX-2451-B
+Mfg Date: 05/01/2025
+Expiry Date: 04/01/2027
+Quantity Affected: 60 units
+Complaint Date: 16/03/2026
+
+Description: A downstream pharmacy customer returned three sealed packs after reporting
+dark foreign particles visible within the capsule contents. On inspection at our depot we
+confirmed the presence of black particulate matter in at least five capsules across two
+packs. All units are from batch AMX-2451-B. We understand a similar issue may already have
+been reported by a hospital customer earlier this month. Remaining depot stock of this
+batch has been placed on hold pending your instruction.
+
+Reported by: Alan Whitcombe, QA Manager, Northgate Medical Distributors Ltd
