@@ -29,29 +29,69 @@ TYPE_PATTERNS = {
     "Contamination": r"\b(contaminat\w*|foreign (?:particle\w*|matter|body|substance)|particulate matter|(?:black|white|brown|metallic|glass|fibre|fiber) particle\w*|visible particle\w*|microbial|fungal|mould|mold|bio ?burden|cross[- ]contamination|endotoxin|pyrogen)\b",
     # "Appearance" is listed before "Packaging" so that a tie on hit count resolves
     # to the more specific physical-defect classification.
-    "Appearance / Physical Defect": r"\b(discolo\w*|colou?r (?:change|patchy)|patchy colou?r|crack\w*|chipped|broken tablet|capping|lamination|mottl\w*|odou?r|smell)\b",
-    "Packaging Defect": r"\b(packag\w*|seal(?:ing|ed)?|blister|foil lidding|leak\w*|cap loose|broken bottle|(?:damaged|crushed|torn|dented|open) (?:box|carton|shipper|pack)|tamper)\b",
+    "Appearance / Physical Defect": r"\b(discolo\w*|colou?r (?:change|patchy|is uneven|uneven)|(?:patchy|uneven) colou?r|crack\w*|chipped|broken tablet|capping|lamination|mottl\w*|odou?r|smell)\b",
+    # Bare "blister" / "packaging" are excluded: a caller who merely "opened the
+    # blister" is describing packaging they handled, not packaging that failed.
+    # Each token here has to name an actual container-closure defect.
+    "Packaging Defect": r"\b(packag\w* (?:defect|damage\w*|fault\w*|failure)|seal(?:ing)? (?:failure|defect|broken|incomplete)|unsealed|blister (?:seal|leak\w*|damage\w*|defect|breach)|foil lidding|leak\w*|cap loose|broken bottle|(?:damaged|crushed|torn|dented|open) (?:box|carton|shipper|pack)|(?:box|carton|shipper|pack)\w*\s+(?:\w+\s+){0,2}?(?:damaged|crushed|torn|dented)|tamper)\b",
     "Labelling Error": r"\b(label\w*|mislabel\w*|artwork|printed text|barcode|expiry (?:printed|mismatch))\b",
     "Adverse Event": r"\b(adverse (?:event|reaction)|side ?effect|hospitali[sz]ed|rash|anaphyla\w*|nausea|patient harm|injur\w*)\b",
-    "Lack of Efficacy": r"\b(not effective|no relief|lack of efficacy|ineffective|therapeutic failure|did ?n[o']t work)\b",
+    # Efficacy is listed before "Product Quality" because a reported clinical
+    # failure ("loss of potency", "no longer controlling") is the more specific
+    # finding; "Product Quality" is the bucket for laboratory results.
+    "Lack of Efficacy": r"\b(not effective|no relief|lack of efficacy|ineffective|therapeutic failure|did ?n[o']t work|loss of potency|lost potency|sub[- ]?potent|no longer (?:working|effective|controlling)|stopped working|cold[- ]chain (?:failure|excursion|breach)|temperature excursion|blood glucose (?:readings? )?(?:ha(?:s|ve) )?risen|readings? above (?:their )?baseline)\b",
     "Quantity / Shortage": r"\b(short (?:supply|quantity|shipment)|missing (?:units|vials|bottles)|count mismatch|under ?weight|shortage)\b",
     "Documentation Discrepancy": r"\b(coa\b|certificate of analysis|batch record|document\w* (?:error|discrepanc)|missing (?:coa|document))\b",
-    "Product Quality": r"\b(dissolution|assay|impurit\w*|out of specification|oos\b|potency|degrad\w*|sterility|ph (?:value|out))\b",
+    "Product Quality": r"\b(dissolution|assay|impurit\w*|out of specification|oos\b|degrad\w*|sterility|ph (?:value|out))\b",
 }
 
 CRITICAL_SIGNALS = r"\b(hospitali[sz]ed|death|fatal|anaphyla\w*|sterility failure|recall|life[- ]threatening|serious adverse|injection site|contaminat\w*|foreign (?:particle\w*|matter|body|substance)|particulate matter|visible particle\w*|(?:black|white|brown|metallic|glass) particle\w*|wrong (?:drug|product|strength)|microbial|endotoxin|patients? (?:received|were given|reported|ingested)|under observation)\b"
 MAJOR_SIGNALS = r"\b(oos\b|out of specification|mislabel\w*|seal(?:ing)? failure|leak\w*|discolo\w*|efficacy|potency|impurit\w*|broken|crack\w*)\b"
 
+# Each entry is (label_regex, inline_value_regex).
+#
+# The label regex must match a whole line on its own — that is the two-column
+# table shape pypdf produces ("Batch No" on one line, "CFZ-6621-A" on the next).
+# The inline regex handles the "Batch No: CFZ-6621-A" shape on a single line.
+# Requiring a separator for the inline case stops document titles such as
+# "CUSTOMER COMPLAINT NOTIFICATION" from being read as a customer name.
 FIELD_LABELS = {
-    "customer_name": r"(?:customer|client|complainant|reported by|hospital|pharmacy|account)\s*(?:name)?\s*[:\-]\s*(.+)",
-    "customer_contact": r"(?:contact|email|e-mail|phone|tel|mobile)\s*(?:no\.?|number)?\s*[:\-]\s*(.+)",
-    "product_name": r"(?:product|drug|item|material|medicine|preparation)\s*(?:name)?\s*[:\-]\s*(.+)",
-    "product_strength": r"(?:strength|grade|dosage|potency|concentration)\s*[:\-]\s*(.+)",
-    "batch_number": r"(?:batch|lot|b\.?no|batch/lot)\s*(?:no\.?|number|#)?\s*[:\-]\s*(.+)",
-    "manufacturing_date": r"(?:mfg|manufactur\w*|mfd|date of manufacture)\s*(?:date)?\s*[:\-]\s*(.+)",
-    "expiry_date": r"(?:exp|expiry|expiration|use before|best before)\s*(?:date)?\s*[:\-]\s*(.+)",
-    "complaint_date": r"(?:complaint|report|incident|received|occurrence)\s*(?:date|on)\s*[:\-]\s*(.+)",
-    "quantity_affected": r"(?:quantity|qty|affected|units?)\s*(?:affected|involved)?\s*[:\-]\s*(.+)",
+    "customer_name": (
+        r"^\s*(?:customer|client|complainant|reported by)\s*(?:name)?\s*$",
+        r"^\s*(?:customer|client|complainant|reported by)\s*(?:name)?\s*[:\-]\s*(.+)",
+    ),
+    "customer_contact": (
+        r"^\s*(?:contact|e-?mail|phone|tel|mobile)\s*(?:no\.?|number|details)?\s*$",
+        r"^\s*(?:contact|e-?mail|phone|tel|mobile)\s*(?:no\.?|number|details)?\s*[:\-]\s*(.+)",
+    ),
+    "product_name": (
+        r"^\s*(?:product|drug|medicine|preparation)\s*(?:name)?\s*$",
+        r"^\s*(?:product|drug|medicine|preparation)\s*(?:name)?\s*[:\-]\s*(.+)",
+    ),
+    "product_strength": (
+        r"^\s*(?:strength|grade|dosage|potency|concentration)(?:\s*/\s*grade)?\s*$",
+        r"^\s*(?:strength|grade|dosage|potency|concentration)(?:\s*/\s*grade)?\s*[:\-]\s*(.+)",
+    ),
+    "batch_number": (
+        r"^\s*(?:batch|lot|batch\s*/\s*lot)\s*(?:no\.?|number|#)?\s*$",
+        r"^\s*(?:batch|lot|b\.?no|batch\s*/\s*lot)\s*(?:no\.?|number|#)?\s*[:\-]\s*(.+)",
+    ),
+    "manufacturing_date": (
+        r"^\s*(?:mfg|mfd|manufactur\w*|date of manufacture)\s*(?:date)?\s*$",
+        r"^\s*(?:mfg|mfd|manufactur\w*|date of manufacture)\s*(?:date)?\s*[:\-]\s*(.+)",
+    ),
+    "expiry_date": (
+        r"^\s*(?:exp|expiry|expiration|use before|best before)\s*(?:date)?\s*$",
+        r"^\s*(?:exp|expiry|expiration|use before|best before)\s*(?:date)?\s*[:\-]\s*(.+)",
+    ),
+    "complaint_date": (
+        r"^\s*(?:complaint|report|incident|occurrence)\s*date\s*$",
+        r"^\s*(?:complaint|report|incident|received|occurrence)\s*(?:date|on)\s*[:\-]\s*(.+)",
+    ),
+    "quantity_affected": (
+        r"^\s*(?:quantity|qty)\s*(?:affected|involved)?\s*$",
+        r"^\s*(?:quantity|qty)\s*(?:affected|involved)?\s*[:\-]\s*(.+)",
+    ),
 }
 
 DATE_FORMATS = [
@@ -214,13 +254,43 @@ def parse_date(value: str | None) -> str | None:
     return None
 
 
-def _label_search(text: str, pattern: str) -> str | None:
-    for line in text.splitlines():
-        match = re.search(pattern, line, re.IGNORECASE)
-        if match:
-            value = _clean(match.group(1))
-            if value and value.lower() not in {"n/a", "na", "none", "-", "tbd", "unknown"}:
+_NULLISH = {"n/a", "na", "none", "-", "tbd", "unknown"}
+
+
+def _label_search(text: str, patterns: tuple[str, str]) -> str | None:
+    """Find a labelled value, whether it sits inline or on the following line.
+
+    Inline form:      "Batch No: CFZ-6621-A"
+    Two-column form:  "Batch No\nCFZ-6621-A"   <- how pypdf flattens table cells
+    """
+    label_only, inline = patterns
+    lines = text.splitlines()
+
+    for index, line in enumerate(lines):
+        inline_match = re.search(inline, line, re.IGNORECASE)
+        if inline_match:
+            value = _clean(inline_match.group(1))
+            if value and value.lower() not in _NULLISH:
                 return value
+            continue
+
+        if not re.match(label_only, line, re.IGNORECASE):
+            continue
+
+        # Bare label line — the value is the next non-empty line, unless that
+        # line is itself another label.
+        for candidate in lines[index + 1 : index + 3]:
+            candidate = _clean(candidate)
+            if not candidate:
+                continue
+            if candidate.lower() in _NULLISH:
+                break
+            if any(
+                re.match(other[0], candidate, re.IGNORECASE) for other in FIELD_LABELS.values()
+            ):
+                break
+            return candidate
+
     return None
 
 

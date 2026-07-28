@@ -191,29 +191,33 @@ def extract_fields(state: AgentState) -> dict:
 
 
 def check_completeness(state: AgentState) -> dict:
+    """Score record completeness.
+
+    Which fields are blank is a fact about the dict, not a judgement call, so the
+    score and the missing list are always computed here. Models asked to restate
+    them drift -- they would report `expiry_date` missing on a record that
+    carries one. The LLM contributes only the advisory prose, which is the part
+    that genuinely benefits from pharma domain knowledge.
+    """
     started = time.perf_counter()
     fields = state.get("fields") or {}
+    computed = heuristics.completeness(fields)
 
     result, engine = chat_json(
         system=prompts.COMPLETENESS_SYSTEM,
-        user=f"EXTRACTED RECORD:\n{json.dumps(fields, indent=2, default=str)}",
+        user=(
+            f"EXTRACTED RECORD:\n{json.dumps(fields, indent=2, default=str)}\n\n"
+            f"FIELDS CONFIRMED ABSENT: {', '.join(computed['missing_fields']) or 'none'}"
+        ),
         model=EXTRACTION_MODEL,
-        fallback=lambda: heuristics.completeness(fields),
+        fallback=lambda: computed,
     )
 
-    fallback = heuristics.completeness(fields)
-    score = result.get("completeness_score")
-    if not isinstance(score, int) or not 0 <= score <= 100:
-        score = fallback["completeness_score"]
-
-    missing = result.get("missing_fields")
-    if not isinstance(missing, list):
-        missing = fallback["missing_fields"]
-
+    score = computed["completeness_score"]
     return {
         "completeness_score": score,
-        "missing_fields": [str(m) for m in missing][:12],
-        "completeness_notes": str(result.get("completeness_notes") or fallback["completeness_notes"]),
+        "missing_fields": computed["missing_fields"][:12],
+        "completeness_notes": str(result.get("completeness_notes") or computed["completeness_notes"]),
         "engines": [engine],
         "trace": [_trace("completeness_check", engine, started, f"score {score}")],
     }

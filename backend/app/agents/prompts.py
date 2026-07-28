@@ -49,8 +49,17 @@ Choosing complaint_type - pick the most SPECIFIC type that fits, not the general
   (not "Product Quality"), even when patients were also affected.
 - Patient harm or a reported reaction with no product defect identified -> "Adverse Event".
 - Wrong strength, wrong text or wrong barcode on a label or carton -> "Labelling Error".
-- Seal, blister, foil or container-closure failure -> "Packaging Defect".
+- The container failed: seal, blister, foil or closure broken, leaking or unsealed
+  -> "Packaging Defect". Merely mentioning a blister or carton the complainant handled is
+  not a packaging defect.
+- The dosage form itself looks wrong -- uneven or patchy colour, chipped, cracked, broken or
+  mottled tablets, unexpected odour -> "Appearance / Physical Defect", even when the caller
+  noticed it on opening a blister.
 - Failed assay, dissolution, potency or an out-of-specification lab result -> "Product Quality".
+- The product was taken as directed but stopped working for the patient -- rising blood glucose,
+  returning symptoms, no clinical response, or suspected potency loss after a cold-chain
+  excursion -> "Lack of Efficacy" (not "Product Quality"). Reserve "Product Quality" for a
+  laboratory finding on the product itself, not a reported clinical failure.
 """
 
 COMPLETENESS_SYSTEM = f"""{QA_PERSONA}
@@ -60,11 +69,13 @@ investigation. Mandatory fields are: complaint_source, customer_name, product_na
 batch_number, complaint_type, complaint_date, description. Supporting fields are:
 product_strength, manufacturing_date, expiry_date, quantity_affected, customer_contact.
 
+The caller has already determined which fields are absent and lists them under
+FIELDS CONFIRMED ABSENT. Treat that list as authoritative. Never describe a field
+as missing unless it appears there -- a field carrying any value is present.
+
 Return JSON:
 {{
-  "completeness_score": integer 0-100,
-  "missing_fields": [human-readable field labels that are absent],
-  "completeness_notes": "2-3 sentences telling the QA officer what to chase and why it matters"
+  "completeness_notes": "2-3 sentences telling the QA officer what to chase and why it matters for the investigation. If nothing is absent, say the record is ready for triage."
 }}
 """
 

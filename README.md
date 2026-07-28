@@ -148,6 +148,23 @@ chosen to exercise a different part of the pipeline:
 Document parsing is deliberately lightweight (no OCR, per the brief). An image-only PDF is
 reported clearly rather than silently returning nothing.
 
+### Demonstration set
+
+`python scripts/generate_demo_pdfs.py` writes five presentation-grade PDFs to
+`backend/samples/demo/`, each engineered to make a different part of the agent visible:
+
+| File | Demonstrates | Verdict |
+|---|---|---|
+| `D1_contamination_critical.pdf` | Critical escalation, regulatory reporting | Contamination · Critical 85 |
+| `D2_efficacy_coldchain.pdf` | Cold-chain reasoning, specific classification | Lack of Efficacy · High 59 |
+| `D3_labelling_wrong_strength.pdf` | Narrow-therapeutic-index risk weighting | Labelling Error · High 59 |
+| `D4_adverse_event_reaction.pdf` | Pharmacovigilance path, batch clustering | Adverse Event · Critical 85 |
+| `D5_incomplete_vague_report.pdf` | **Completeness checker** — refuses to invent data | Appearance · Low 25, 50% complete |
+
+See **[DEMO_GUIDE.md](DEMO_GUIDE.md)** for the full end-to-end walkthrough: what to say for each
+document, how text extraction works, how risk is assessed, which function powers which feature,
+what happens on save, and the output guards that prevent hallucination.
+
 ---
 
 ## Layout
