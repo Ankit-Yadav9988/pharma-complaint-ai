@@ -1,6 +1,4 @@
-const BASE = 'https://pharma-complaint-ai.onrender.com'
-
-console.log('API BASE:', BASE)
+const BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
