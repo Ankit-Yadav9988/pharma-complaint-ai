@@ -52,3 +52,4 @@ def health() -> dict:
         "extraction_model": settings.groq_extraction_model,
         "reasoning_model": settings.groq_reasoning_model,
     }
+3
