@@ -1,6 +1,6 @@
 const BASE = 'https://pharma-complaint-ai.onrender.com'
 
-console.log('API BASE:', BASE)'
+console.log('API BASE:', BASE)
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
